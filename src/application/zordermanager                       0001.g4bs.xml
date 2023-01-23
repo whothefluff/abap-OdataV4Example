@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_G4BS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <_-IWBEP_-I_V4_MSRT>
+    <_-IWBEP_-I_V4_MSRT>
+     <SERVICE_ID>ZORDERMANAGER</SERVICE_ID>
+     <SERVICE_VERSION>0001</SERVICE_VERSION>
+     <LANGUAGE>E</LANGUAGE>
+     <DESCRIPTION>ODataV4 example, order manager service</DESCRIPTION>
+    </_-IWBEP_-I_V4_MSRT>
+   </_-IWBEP_-I_V4_MSRT>
+   <_-IWBEP_-I_V4_MSRV>
+    <_-IWBEP_-I_V4_MSRV>
+     <SERVICE_ID>ZORDERMANAGER</SERVICE_ID>
+     <SERVICE_VERSION>0001</SERVICE_VERSION>
+     <MPC_NAME>ZCL_OV4_ORDERS_MPC</MPC_NAME>
+     <DPC_NAME>ZCL_OV4_ORDERS_DPC</DPC_NAME>
+     <IS_SAP_SERVICE>-</IS_SAP_SERVICE>
+     <CREATED_BY>DEVELOPER</CREATED_BY>
+     <CHANGED_BY>DEVELOPER</CHANGED_BY>
+     <CREATED_TS>20230123004938</CREATED_TS>
+     <CHANGED_TS>20230123004938</CHANGED_TS>
+    </_-IWBEP_-I_V4_MSRV>
+   </_-IWBEP_-I_V4_MSRV>
+  </asx:values>
+ </asx:abap>
+</abapGit>
