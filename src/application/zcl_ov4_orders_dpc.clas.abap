@@ -132,11 +132,12 @@ class zcl_ov4_orders_dpc implementation.
         where (iv_where_clause)
         order by (iv_orderby_string)
         into table @orders
-        up to @iv_top rows
-        offset @iv_skip.
+*        offset @iv_skip
+        up to @iv_top rows.
 
       io_response->set_busi_data( orders ).
 
+      io_response->set_is_done( value #( key_data = abap_true ) ).
 
   endmethod.
   method read_entity_orders.

@@ -5,8 +5,7 @@
    <DDLS>
     <DDLNAME>ZI_OV4_ORDERSTATUSES</DDLNAME>
     <DDLANGUAGE>E</DDLANGUAGE>
-    <DDTEXT>Order statuses</DDTEXT>
-    <SOURCE_TYPE>V</SOURCE_TYPE>
+    <DDTEXT>Order status</DDTEXT>
    </DDLS>
   </asx:values>
  </asx:abap>
