@@ -1,7 +1,8 @@
 class zcl_ov4_orders_mpc definition
                          public
                          inheriting from /iwbep/cl_v4_abs_model_prov
-                         create public.
+                         create public
+                         global friends cl_sadl_gw_cds_p_element.
 
   public section.
 
@@ -66,6 +67,30 @@ class zcl_ov4_orders_mpc definition
               raising
                  /iwbep/cx_gateway.
 
+    methods define_order_statuses
+              importing
+                i_model type ref to /iwbep/if_v4_med_model
+              raising
+                 /iwbep/cx_gateway.
+
+    methods define_lcalized_order_statuses
+              importing
+                i_model type ref to /iwbep/if_v4_med_model
+              raising
+                 /iwbep/cx_gateway.
+
+    methods define_unit_of_measures
+              importing
+                i_model type ref to /iwbep/if_v4_med_model
+              raising
+                 /iwbep/cx_gateway.
+
+    methods define_order_status_texts
+              importing
+                i_model type ref to /iwbep/if_v4_med_model
+              raising
+                 /iwbep/cx_gateway.
+
     methods view_definition
               returning
                 value(r_view_definition) type ref to cl_qlast_view_definition.
@@ -74,11 +99,17 @@ class zcl_ov4_orders_mpc definition
               returning
                 value(r_sadl_parser) type ref to if_sadl_gw_cds_parser.
 
+    methods sadl_entity
+              returning
+                value(r_sadl_entity) type ref to if_sadl_entity.
+
   protected section.
 
     class-data a_view_definition type ref to cl_qlast_view_definition.
 
     class-data a_sadl_cds_parser type ref to if_sadl_gw_cds_parser.
+
+    class-data a_sadl_entity type ref to if_sadl_entity .
 
 endclass.
 
@@ -91,6 +122,10 @@ class zcl_ov4_orders_mpc implementation.
     me->define_orders( io_model ).
 
     me->define_order_items( io_model ).
+
+    me->define_lcalized_order_statuses( io_model ).
+
+    me->define_order_statuses( io_model ).
 
   endmethod.
   method define_orders.
@@ -124,6 +159,8 @@ class zcl_ov4_orders_mpc implementation.
 
         if select_entry->*->get_type( ) eq cl_qlast_constants=>selectlist_entry_std.
 
+*          data(testttt) = sadl_gw_cds_p_element=>get_element( cast cl_qlast_stdselectlist_entry( select_entry->* ) ). "don't really add much
+
           if cast cl_qlast_stdselectlist_entry( select_entry->* )->iskeyelement( ).
 
             primitive_property->set_is_key( ).
@@ -149,6 +186,8 @@ class zcl_ov4_orders_mpc implementation.
     loop at associations->get_entries( ) reference into data(association_entry) to 1. """""""delete later
 
       if association_entry->*->is_exposed( ).
+
+        data(auxxxx) = sadl_gw_cds_p_association=>get_association( association_entry->* ). "falla porque el right no se llena hmmmmm
 
         data(navigation) = entity_type->create_navigation_property( exact #( association_entry->*->get_name( ) ) ).
 
@@ -242,7 +281,7 @@ class zcl_ov4_orders_mpc implementation.
       cl_dd_ddl_handler_factory=>create_internal( )->get_viewdef_from_src( exporting ddlname = to_upper( 'ZI_OV4_Orders' )
                                                                                      get_state = 'A'
                                                                                      langu = 'E'
-*                                                                                     ddlsrcv_wa = ddlsrcv_wa "DDL Source
+*                                                                                     ddlsrcv_wa = ddlsrcv_wa "DDL Source ######################## I think this is the difference
 *                                                                                     parse_strictness = 0 "Controls the stringency of checks during parsing
 *                                                                                     prid = -1 "ID for Log Writer
 *                                                                                     extends_from_parser = abap_false "ABAP_false: No expand of extends by parser
@@ -257,11 +296,11 @@ class zcl_ov4_orders_mpc implementation.
 
       sadl_entity->get_alternative_keys( importing et_alt_keys_with_elements = data(alternative_keys) ).
 
-      sadl_entity->get_associations( importing et_associations = data(associations) ). "name, target cds, postfix conditions (all uppercase)
+      sadl_entity->get_associations( importing et_associations = data(associations) ). "name, target cds, postfix conditions (all uppercase, looks hard to use)
 
       sadl_entity->get_association_external_names( importing et_names = data(association_names) ). "uppercase name, real name
 
-      data(item_target) = sadl_entity->get_association_target( `_Items` ).
+      data(item_target) = sadl_entity->get_association_target( `_Items` ). "# looks extremely useful
 
       sadl_entity->get_elements( importing et_elements = data(elements) ). "name, data type, type of type (raw, dec, sstr)
 
@@ -292,7 +331,7 @@ class zcl_ov4_orders_mpc implementation.
       new cl_sadl_ddl_parser_consumption( )->parse_cds_view( exporting iv_cds_view = `ZI_OV4_Orders`
                                                              importing es_sadl_definition = data(sadl_definition2) ).
 
-      new cl_sadl_entity_consump_info( iv_id = `ZI_OV4_Orders`
+      new cl_sadl_entity_consump_info( iv_id = `ZI_OV4_Orders`                                         ""name, target cds, postfix conditions (all uppercase, looks hard to use)
                                        iv_type = cl_sadl_entity_provider_cds=>gc_type )->if_sadl_entity_consump_info~get_associations( importing et_associations = data(associations2) ).
 
       data(sadl_parser) = cl_sadl_gw_cds_factory=>get_parser( exporting iv_cds_view = `ZI_OV4_Orders`
@@ -301,11 +340,16 @@ class zcl_ov4_orders_mpc implementation.
 
       data(elements2) = sadl_parser->get_elements( ).
 
-      data(associations3) = sadl_parser->get_associations( ).
+      data(associations3) = sadl_parser->get_associations( ). "alias _ITEMS, content CL_SADL_GW_CDS_P_ASSOCIATION
 
       data(join_partners) = sadl_parser->get_join_partners( ). "null
 
       a_sadl_cds_parser = sadl_parser.
+
+      a_sadl_entity = sadl_entity.
+
+      "like zcl_ov4_orders_mpc=>a_view_definition but better
+      data(testttt) = new view_definition_factory( )->from_ddl_source( new cds_view_factory( )->from_cds_name( `ZI_OV4_Orders` ) ).
 
     catch cx_dd_ddl_read
           cx_dd_ddl_to_view
@@ -324,6 +368,82 @@ class zcl_ov4_orders_mpc implementation.
   method sadl_parser.
 
     r_sadl_parser = zcl_ov4_orders_mpc=>a_sadl_cds_parser.
+
+  endmethod.
+  method sadl_entity.
+
+    r_sadl_entity = zcl_ov4_orders_mpc=>a_sadl_entity.
+
+  endmethod.
+  method define_lcalized_order_statuses.
+
+    read table me->sadl_parser( )->get_associations( ) with table key alias = to_upper( `_LocalizedStatus` ) into data(assoc) transporting content.
+
+    data(test) = assoc-content->get_source_fields( ). " 'Status' lol
+
+    data(test2) = assoc-content->get_target( ). " 'ZI_OV4_OrderStatusLocalized'
+
+*    assoc-content->get_cardinality( ). could be useful for root
+
+*    assoc-content->get_constraints( ). could be useful for root
+
+    data(test3) = me->sadl_entity( )->get_association_target( `_LocalizedStatus` ).
+
+    test3->get_elements( importing et_elements = data(elements) ). "name, data type, type of type (raw, dec, sstr)
+
+    loop at elements reference into data(element). "solo nombre mayus peeero no assocs
+
+      break-point.
+
+    endloop.
+
+    loop at me->sadl_parser( )->get_elements( ) reference into data(element2).
+
+      break-point.
+      element2->content->get_alias(  ). " 'ID'
+
+      element2->content->get_annotations( ).
+
+    endloop.
+
+    data(aux) = value cl_qlast_selectlist=>entry_table_type( for <el> in me->view_definition( )->get_select( )->get_selectlist( )->get_entries( )
+                                                              ( cond #( when <el>->get_type( ) eq cl_qlast_constants=>selectlist_entry_std
+                                                                        then <el> ) ) ).
+
+    delete aux where table_line is initial.
+
+    data(x) = sadl_gw_cds_p_element=>get_elements( aux ).
+
+    loop at x reference into data(element3).
+
+      "= que el otro pero con mis metodines de acceso chungo
+
+      break-point.
+
+    endloop.
+
+    "nombre interno + externo, annots, clave o no
+    "  sadl_parser
+    "    anotaciones
+    "  sadl_entity
+    "    internal names
+    "    external names
+    "    pk names
+    "  view def
+    "    internal names
+    "    external names
+    "    pk bool
+    "    anotaciones
+    "  view def gana, puesto que tiene todo y permite crear los elementos del sadl_parser
+
+  endmethod.
+  method define_order_statuses.
+
+  endmethod.
+  method define_order_status_texts.
+
+  endmethod.
+  method define_unit_of_measures.
 
   endmethod.
 
