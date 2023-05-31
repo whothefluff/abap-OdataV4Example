@@ -48,7 +48,7 @@ class zcl_ov4_orders_dpc implementation.
 
     case entityset_name.
 
-      when zcl_ov4_orders_mpc=>entity_set_names-internal-orders.
+      when ''.
 
         read_entity_orders( io_request = io_request
                             io_response = io_response ).
@@ -82,7 +82,7 @@ class zcl_ov4_orders_dpc implementation.
 
     case entityset_name.
 
-      when zcl_ov4_orders_mpc=>entity_set_names-internal-orders.
+      when 'ZI_OV4_ORDERS'.
 
         read_list_salesorder( io_request = io_request
                               io_response = io_response
@@ -107,7 +107,7 @@ class zcl_ov4_orders_dpc implementation.
 
     case lv_source_entity_name.
 
-      when zcl_ov4_orders_mpc=>entity_type_names-internal-orders.
+      when ''.
 
         read_ref_key_list_salesorder( io_request = io_request
                                       io_response = io_response ).
@@ -142,8 +142,8 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method read_entity_orders.
 
-    data: ls_salesorder type zcl_ov4_orders_mpc=>cds_views-orders,
-          ls_key_salesorder type zcl_ov4_orders_mpc=>cds_views-orders,
+    data: ls_salesorder type ZI_OV4_Orders,
+          ls_key_salesorder type ZI_OV4_Orders,
           lv_salesorder_key_edm type string,
           lv_helper_int type i.
 
@@ -183,8 +183,8 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method read_ref_key_list_salesorder.
 
-    data: ls_salesorder_key_data type zcl_ov4_orders_mpc=>cds_views-orders,
-          lt_salesorderitem_key_data type standard table of zcl_ov4_orders_mpc=>cds_views-items,
+    data: ls_salesorder_key_data type ZI_OV4_Orders,
+          lt_salesorderitem_key_data type standard table of ZI_OV4_OrderItems,
           ls_todo_list type /iwbep/if_v4_requ_basic_ref_l=>ty_s_todo_list.
 
     data: ls_done_list type /iwbep/if_v4_requ_basic_ref_l=>ty_s_todo_process_list,
@@ -202,7 +202,7 @@ class zcl_ov4_orders_dpc implementation.
 
     case lv_nav_property_name.
 
-      when zcl_ov4_orders_mpc=>nav_prop_names-internal-orders_to_items.
+      when ''.
 
         select UpId,
                Id

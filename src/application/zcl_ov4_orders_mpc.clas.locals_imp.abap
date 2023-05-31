@@ -1074,7 +1074,7 @@ CLASS sadl_gw_cds_p_association IMPLEMENTATION.
   ENDMETHOD.
 
 ENDCLASS.
-CLASS cds_view_factory IMPLEMENTATION.
+CLASS ddl_source_factory IMPLEMENTATION.
 
   METHOD from_cds_name.
 

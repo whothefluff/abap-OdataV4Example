@@ -228,7 +228,7 @@ CLASS sadl_gw_cds_p_association DEFINITION
       RAISING
         cx_sadl_gw_cds_parser .
 ENDCLASS.
-class cds_view_factory definition
+class ddl_source_factory definition
                           create public
                           inheriting from CL_SADL_GW_CDS_FACTORY.
 

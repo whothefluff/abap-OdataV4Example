@@ -3,11 +3,10 @@
 @AbapCatalog.preserveKey: true
 @AccessControl.authorizationCheck: #NOT_REQUIRED
 @EndUserText.label: 'Order items'
-//define view entity ZI_OV4_OrderItems
+@ObjectModel: { representativeKey: 'Id',
+                semanticKey: ['Id'] }
 define view ZI_OV4_OrderItems
   as select from zov4orderitem
-  //  association to parent ZI_OV4_Orders as _Header
-  //    on $projection.UpId = _Header.Id
   association [1..1] to ZI_OV4_Orders as _Header
     on $projection.UpId = _Header.Id
   association [1..1] to I_UnitOfMeasure as _UnitOfMeasure
@@ -28,9 +27,12 @@ define view ZI_OV4_OrderItems
     @Semantics.user: { lastChangedBy: true }
     modified_by as ModifiedBy,
     @Semantics.unitOfMeasure: true
+    @ObjectModel.foreignKey: { association: '_UnitOfMeasure' }
     unit as Unit,
     @Semantics.quantity: { unitOfMeasure: 'Unit' }
     quantity as Quantity,
+    @ObjectModel: { association: { type: [ #TO_COMPOSITION_PARENT,
+                                           #TO_COMPOSITION_ROOT] } }
     _Header,
     _UnitOfMeasure
     //    _CreationUser,

@@ -9,11 +9,9 @@ define view ZI_OV4_OrderStatusLocalized
     left outer join zov4orderstatust
       on zov4orderstatus.id = zov4orderstatust.id
       and zov4orderstatust.language = $session.system_language
-  //  association to parent ZI_OV4_OrderStatuses as _Status // only in 754 and after
-  //    on $projection.Id = _Status.Id
-  association [1..*] to ZI_OV4_OrderStatuses as _Status
+  association [1..1] to ZI_OV4_OrderStatuses as _Status
     on $projection.Id = _Status.Id
-  association [1..*] to ZI_OV4_OrderStatusTexts as _Texts
+  association [0..*] to ZI_OV4_OrderStatusTexts as _Texts
     on $projection.Id = _Texts.Id
   //  association [0..1] to I_User as _CreationUser
   //    on $projection.CreatedBy = _CreationUser.UserID

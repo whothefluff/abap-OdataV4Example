@@ -11,6 +11,14 @@
     <FIXPT>X</FIXPT>
     <UNICODE>X</UNICODE>
    </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_OV4_ORDERS_MPC</CLSNAME>
+     <CMPNAME>DEFINE_FROM_ENTITY</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Define entity and navigations</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
   </asx:values>
  </asx:abap>
 </abapGit>
