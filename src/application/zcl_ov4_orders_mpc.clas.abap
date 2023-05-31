@@ -70,9 +70,15 @@ class zcl_ov4_orders_mpc definition
               returning
                 value(r_view_definition) type ref to cl_qlast_view_definition.
 
+    methods sadl_parser
+              returning
+                value(r_sadl_parser) type ref to if_sadl_gw_cds_parser.
+
   protected section.
 
     class-data a_view_definition type ref to cl_qlast_view_definition.
+
+    class-data a_sadl_cds_parser type ref to if_sadl_gw_cds_parser.
 
 endclass.
 
@@ -102,6 +108,10 @@ class zcl_ov4_orders_mpc implementation.
 
     data(select_list) = me->view_definition( )->get_select( )->get_selectlist( ).
 
+    data(asflkasdfasdf) = me->sadl_parser( )->get_elements( ).
+
+    "for each element in sadl_parser, get the equivalent in view_definition (diff data)
+
     loop at select_list->get_entries( ) reference into data(select_entry).
 
       try.
@@ -112,9 +122,17 @@ class zcl_ov4_orders_mpc implementation.
 
         primitive_property->set_edm_name( exact #( cast cl_qlast_stdselectlist_entry( select_entry->* )->get_alias( upper_case = abap_false ) ) ).
 
-        if cast cl_qlast_stdselectlist_entry( select_entry->* )->iskeyelement( ).
+        if select_entry->*->get_type( ) eq cl_qlast_constants=>selectlist_entry_std.
 
-          primitive_property->set_is_key( ).
+          if cast cl_qlast_stdselectlist_entry( select_entry->* )->iskeyelement( ).
+
+            primitive_property->set_is_key( ).
+
+          else.
+
+            primitive_property->set_is_nullable( ).
+
+          endif.
 
         endif.
 
@@ -151,10 +169,12 @@ class zcl_ov4_orders_mpc implementation.
 
           data(on_expression) = cast cl_qlast_unmanaged_association( association_entry->* )->get_on( ).
 
-          data(test) = cast cl_qlast_comp_expression( on_expression ). "try also with complex assoc
+          data(comparison_on_expression) = cast cl_qlast_comp_expression( on_expression ). "try also with complex assoc
 
-*        navigation->add_referential_constraint( iv_source_property_path = ``
-*                                                iv_target_property_path = `` ). cast to CL_QLAST_UNMANAGED_ASSOCIATION
+          data(comparison_select_list) = cast cl_qlast_stdselectlist_entry( cast cl_qlast_assoc_on_element( comparison_on_expression->get_left( ) )->get_selectlist_entry( ) ).
+
+*        navigation->add_referential_constraint( iv_source_property_path = comparison_select_list->get_alias( upper_case = abap_false )
+*                                                iv_target_property_path = `` ).
 
         catch cx_sy_move_cast_error.
           "EC #NO_CATCH
@@ -230,6 +250,63 @@ class zcl_ov4_orders_mpc implementation.
 
       zcl_ov4_orders_mpc=>a_view_definition = cast #( ddl_statement ).
 
+      data(sadl_entity_provider_cds) = cast if_sadl_entity_provider( new cl_sadl_entity_provider_cds( ) ).
+
+      data(sadl_entity) = sadl_entity_provider_cds->get_entity( iv_id = `ZI_OV4_Orders`
+                                                                iv_type = cl_sadl_entity_provider_cds=>gc_type ).
+
+      sadl_entity->get_alternative_keys( importing et_alt_keys_with_elements = data(alternative_keys) ).
+
+      sadl_entity->get_associations( importing et_associations = data(associations) ). "name, target cds, postfix conditions (all uppercase)
+
+      sadl_entity->get_association_external_names( importing et_names = data(association_names) ). "uppercase name, real name
+
+      data(item_target) = sadl_entity->get_association_target( `_Items` ).
+
+      sadl_entity->get_elements( importing et_elements = data(elements) ). "name, data type, type of type (raw, dec, sstr)
+
+      sadl_entity->get_element_external_names( importing et_names = data(element_names) ). "uppercase name, real name
+
+      sadl_entity->get_key_elements( importing et_key_elements = data(key_elements) ). "uppercase name
+
+      sadl_entity->get_label_elements( importing et_label_elements = data(lable_elements) ).
+
+      sadl_entity->get_primary_key_elements( importing et_primary_key_elements = data(pk_elements) ). "uppercase name
+
+      sadl_entity->get_ui_texts( importing et_ui_texts_by_element_names = data(element_ui_Texts) ). "uppercase name, struct with ddic texts
+
+      sadl_entity->get_queries( importing et_queries = data(queries) ).
+
+      cl_sadl_entity_provider_cds=>get_consumption_view_def( exporting io_cds_entity = sadl_entity
+                                                             importing ev_is_consumption_view = data(is_consumption_view)
+                                                                       ev_source_id = data(source_id)
+                                                                       es_sadl_definition = data(sadl_definition) ). "null
+
+      cl_sadl_entity_provider_cds=>get_metadata_load_from_entity( exporting io_cds_entity = sadl_entity
+                                                                  importing es_metadata = data(metadata) ). "useless
+
+      cl_sadl_cds_exposure_helper=>get_involved_entities( exporting iv_entity_id = `ZI_OV4_Orders`
+                                                                    iv_entity_type = cl_sadl_entity_provider_cds=>gc_type
+                                                          importing et_entities = data(entities) ). "ZI_OV4_Orders, ZI_OV4_ORDERITEMS, ZI_OV4_ORDERSTATUSES, ZI_OV4_ORDERSTATUSLOCALIZED
+
+      new cl_sadl_ddl_parser_consumption( )->parse_cds_view( exporting iv_cds_view = `ZI_OV4_Orders`
+                                                             importing es_sadl_definition = data(sadl_definition2) ).
+
+      new cl_sadl_entity_consump_info( iv_id = `ZI_OV4_Orders`
+                                       iv_type = cl_sadl_entity_provider_cds=>gc_type )->if_sadl_entity_consump_info~get_associations( importing et_associations = data(associations2) ).
+
+      data(sadl_parser) = cl_sadl_gw_cds_factory=>get_parser( exporting iv_cds_view = `ZI_OV4_Orders`
+*                                                                        iv_ddl_source = `ZI_OV4_Orders`
+                                                                        iv_semantic_check = abap_true ).
+
+      data(elements2) = sadl_parser->get_elements( ).
+
+      data(associations3) = sadl_parser->get_associations( ).
+
+      data(join_partners) = sadl_parser->get_join_partners( ). "null
+
+      a_sadl_cds_parser = sadl_parser.
+
     catch cx_dd_ddl_read
           cx_dd_ddl_to_view
           cx_sy_move_cast_error into data(error).
@@ -242,6 +319,11 @@ class zcl_ov4_orders_mpc implementation.
   method view_definition.
 
     r_view_definition = zcl_ov4_orders_mpc=>a_view_definition.
+
+  endmethod.
+  method sadl_parser.
+
+    r_sadl_parser = zcl_ov4_orders_mpc=>a_sadl_cds_parser.
 
   endmethod.
 
