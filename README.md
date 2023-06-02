@@ -6,11 +6,11 @@ This README file outlines how the code defines models and CRUD based on CDS view
 
 - Creates entity types with cds name + 'Type'
   - Internal name is cds name + '_TY' so the cds name has to be limited to 27 characters
-- Defines properties from the cds using the name as is (respecting case)
-- Defines edm types, conversions, and tags of properties based on a standard mappings of the ABAP Dictionary
-- Defines properties as key from the cds keys
-- Defines properties as nullable if they are not keys and do not depend on a foreign key either (based on annotation @ObjectModel.foreignKey)
-- Defines properties as etag from cds annotation @Semantics.systemDate.lastChangedAt (only one eTag for entity type is allowed)
+  - Defines properties from the cds using the name as is (respecting case)
+  - Defines edm types, conversions, and tags of properties based on a standard mappings of the ABAP Dictionary
+  - Defines properties as key from the cds keys
+  - Defines properties as nullable if they are not keys and do not depend on a foreign key either (based on annotation @ObjectModel.foreignKey)
+  - Defines properties as etag from cds annotation @Semantics.systemDate.lastChangedAt (only one eTag for entity type is allowed)
 - Creates navigations based on exposed cds associations with alias name (respecting case)
   - Defines cardinality from the association cardinality
   - Defines referential constraints from the association on condition (for entities that are not part of a composition and that don't have cardinality to many)
