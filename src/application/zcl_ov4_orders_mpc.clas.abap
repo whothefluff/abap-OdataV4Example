@@ -12,6 +12,7 @@ class zcl_ov4_orders_mpc definition
     "! <p class="shorttext synchronized" lang="EN">Define entity and navigations</p>
     "! Navigations are defined from from exposed associations. To work,
     "! the defined navigations have to be created as entities too in the model
+    "! <br/>eTags are created from elements with Annotation Semantics.systemDate.lastChangedAt
     "!
     "! @parameter i_name | <p class="shorttext synchronized" lang="EN"></p>
     "! @parameter i_external_name | <p class="shorttext synchronized" lang="EN"></p>
@@ -85,8 +86,8 @@ class zcl_ov4_orders_mpc implementation.
 
     me->define_from_entity( `ZI_OV4_OrderStatusLocalized` ).
 
-    me->define_from_entity( i_name = `I_UnitOfMeasureText`
-                            i_model_associations = abap_false ).
+*    me->define_from_entity( i_name = `I_UnitOfMeasureText`
+*                            i_model_associations = abap_false ).
 
   endmethod.
   method define_from_entity.
@@ -135,7 +136,7 @@ class zcl_ov4_orders_mpc implementation.
 
       if select_entry->*->get_type( ) eq cl_qlast_constants=>selectlist_entry_std.
 
-*        data(gw_element) = sadl_gw_cds_p_element=>get_element( cast cl_qlast_stdselectlist_entry( select_entry->* ) ). "don't really add much
+*        data(gw_element) = sadl_gw_cds_p_element=>get_element( cast cl_qlast_stdselectlist_entry( select_entry->* ) ). "don't add much
 
         data(non_association_entry) = cast cl_qlast_stdselectlist_entry( select_entry->* ).
 
@@ -159,6 +160,17 @@ class zcl_ov4_orders_mpc implementation.
           if not ( line_exists( obj_model_fk_assoc[ 1 ] ) ).
 
             primitive_property->set_is_nullable( ).
+
+          endif.
+
+          cl_dd_ddl_annotation_service=>get_direct_annoval_4_element( exporting entityname = exact #( i_name )
+                                                                                elementname = exact #( non_association_entry->get_alias_struct( )-name )
+                                                                                annoname = 'SEMANTICS.SYSTEMDATE.LASTCHANGEDAT'
+                                                                      importing values = data(obj_model_last_changed) ).
+
+          if line_exists( obj_model_last_changed[ 1 ] ).
+
+            primitive_property->use_as_etag( ).
 
           endif.
 

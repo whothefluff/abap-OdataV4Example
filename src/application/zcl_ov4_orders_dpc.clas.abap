@@ -3,45 +3,66 @@ class zcl_ov4_orders_dpc definition
                          inheriting from /iwbep/cl_v4_abs_data_provider
                          create public.
 
-public section.
+  public section.
 
-  "! <p class="shorttext synchronized" lang="EN"></p>
-  "!
-  "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
-  "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
-  "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
-  methods read_entity
-            importing
-              !i_request type ref to /iwbep/if_v4_requ_basic_read
-              !i_response type ref to /iwbep/if_v4_resp_basic_read
-            raising
-              /iwbep/cx_gateway.
+    "! <p class="shorttext synchronized" lang="EN"></p>
+    "!
+    "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+    "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+    "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+    methods read_entity
+              importing
+                !i_request type ref to /iwbep/if_v4_requ_basic_read
+                !i_response type ref to /iwbep/if_v4_resp_basic_read
+              raising
+                /iwbep/cx_gateway.
 
-  "! <p class="shorttext synchronized" lang="EN"></p>
-  "! Paging in general is probably a bad idea until 7.51 and offset
-  "!
-  "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
-  "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
-  "! @parameter i_auto_paging_size | <p class="shorttext synchronized" lang="EN"></p>
-  "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
-  methods read_entity_list
-            importing
-              !i_request type ref to /iwbep/if_v4_requ_basic_list
-              !i_response type ref to /iwbep/if_v4_resp_basic_list
-              i_auto_paging_size type i default 1000
-            raising
-              /iwbep/cx_gateway.
+    "! <p class="shorttext synchronized" lang="EN"></p>
+    "! Paging in general is probably a bad idea until 7.51 and offset
+    "!
+    "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+    "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+    "! @parameter i_auto_paging_size | <p class="shorttext synchronized" lang="EN"></p>
+    "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+    methods read_entity_list
+              importing
+                !i_request type ref to /iwbep/if_v4_requ_basic_list
+                !i_response type ref to /iwbep/if_v4_resp_basic_list
+                i_auto_paging_size type i default 1000
+              raising
+                /iwbep/cx_gateway.
 
-  methods READ_REF_KEY_LIST_SALESORDER
-    importing
-      !IO_REQUEST type ref to /IWBEP/IF_V4_REQU_BASIC_REF_L
-      !IO_RESPONSE type ref to /IWBEP/IF_V4_RESP_BASIC_REF_L .
+    "! <p class="shorttext synchronized" lang="EN"></p>
+    "!
+    "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+    "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+    "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+    methods read_ref_target
+              importing
+                !i_request type ref to /iwbep/if_v4_requ_basic_ref_r
+                !i_response type ref to /iwbep/if_v4_resp_basic_ref_r
+              raising
+                /iwbep/cx_gateway.
 
-  methods /iwbep/if_v4_dp_basic~read_entity redefinition.
+    "! <p class="shorttext synchronized" lang="EN"></p>
+    "!
+    "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+    "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+    "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+    methods read_ref_target_list
+              importing
+                !i_request type ref to /iwbep/if_v4_requ_basic_ref_l
+                !i_response type ref to /iwbep/if_v4_resp_basic_ref_l
+              raising
+                /iwbep/cx_gateway.
 
-  methods /iwbep/if_v4_dp_basic~read_entity_list redefinition.
+    methods /iwbep/if_v4_dp_basic~read_entity redefinition.
 
-  methods /iwbep/if_v4_dp_basic~read_ref_target_key_data_list redefinition.
+    methods /iwbep/if_v4_dp_basic~read_entity_list redefinition.
+
+    methods /iwbep/if_v4_dp_basic~read_ref_target_key_data redefinition.
+
+    methods /iwbep/if_v4_dp_basic~read_ref_target_key_data_list redefinition.
 
   protected section.
 
@@ -58,8 +79,8 @@ class zcl_ov4_orders_dpc implementation.
 
       when others.
 
-        read_entity( i_request = io_request
-                     i_response = io_response ).
+        me->read_entity( i_request = io_request
+                         i_response = io_response ).
 
     endcase.
 
@@ -80,31 +101,42 @@ class zcl_ov4_orders_dpc implementation.
     endcase.
 
   endmethod.
-  method /iwbep/if_v4_dp_basic~read_ref_target_key_data_list.
-*SalesOrder(‘500000000’)/_Item or
-*SalesOrder(‘500000000’)?$expand=_Item
+  method /iwbep/if_v4_dp_basic~read_ref_target_key_data.
 
-    data: lv_source_entity_name type /iwbep/if_v4_med_element=>ty_e_med_internal_name.
+    super->/iwbep/if_v4_dp_basic~read_ref_target_key_data( io_request = io_request
+                                                           io_response = io_response ).
 
+    io_request->get_source_entity_type( importing ev_source_entity_type_name = data(source_entityset_name) ).
 
-    io_request->get_source_entity_type( importing ev_source_entity_type_name = lv_source_entity_name ).
+    case source_entityset_name.
 
-    case lv_source_entity_name.
-
-      when ''.
-
-        read_ref_key_list_salesorder( io_request = io_request
-                                      io_response = io_response ).
+      when 'entityThatRequiresCustomSelect'.
 
       when others.
 
-        super->/iwbep/if_v4_dp_basic~read_ref_target_key_data_list(
-          exporting
-            io_request  = io_request
-            io_response = io_response ).
+        me->read_ref_target( i_request = io_request
+                             i_response = io_response ).
 
     endcase.
 
+  endmethod.
+  method /iwbep/if_v4_dp_basic~read_ref_target_key_data_list.
+
+    super->/iwbep/if_v4_dp_basic~read_ref_target_key_data_list( io_request = io_request
+                                                                io_response = io_response ).
+
+    io_request->get_source_entity_type( importing ev_source_entity_type_name = data(source_entityset_name) ).
+
+    case source_entityset_name.
+
+      when 'entityThatRequiresCustomSelect'.
+
+      when others.
+
+        me->read_ref_target_list( i_request = io_request
+                                  i_response = io_response ).
+
+    endcase.
 
   endmethod.
   method read_entity.
@@ -117,6 +149,11 @@ class zcl_ov4_orders_dpc implementation.
 
       i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
 
+      i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
+
+      data(selected_properties) = concat_lines_of( table = selected_properties_aux
+                                                   sep = `,` ).
+
       data(cds_type) = cast cl_abap_structdescr( cl_abap_typedescr=>describe_by_name( entityset_name ) ).
 
       create data structure type handle cds_type.
@@ -125,20 +162,17 @@ class zcl_ov4_orders_dpc implementation.
 
       cast /iwbep/cl_v4_request_info_pro( i_request )->get_base_request_info( )->get_source_key_data_tab( importing et_source_key_tab = data(key_data_tab) ).
 
-      data(sql_cond) = reduce #( init dyn_cond type string
-                                 for <entry> in key_data_tab index into index
-                                 let logical_expression = cond #( when index ne 1
-                                                                  then ` and ` ) in
-                                 next dyn_cond = |{ dyn_cond }{ logical_expression }{ <entry>-name } eq '{ <entry>-value }'| ).
+      data(filter_log_exp) = reduce #( init aux type string
+                                       for <entry> in key_data_tab index into index
+                                       let logical_expression = cond #( when index ne 1
+                                                                        then ` and ` ) in
+                                       next aux = |{ aux }{ logical_expression }{ <entry>-name } eq '{ <entry>-value }'| ).
 
-      i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
-
-      data(selected_properties) = concat_lines_of( table = selected_properties_aux
-                                                   sep = `,` ).
+      data(log_exp) = filter_log_exp.
 
       select single (selected_properties)
         from (entityset_name)
-        where (sql_cond)
+        where (log_exp)
         into corresponding fields of @<structure>.
 
       if <structure> is not initial.
@@ -162,16 +196,12 @@ class zcl_ov4_orders_dpc implementation.
 
     endif.
 
-    i_response->set_is_done( value #( if_none_match_etag = value #( ) "how do I get todo-process-if_none_match_etag to be true and what does it mean
+    i_response->set_is_done( value #( if_none_match_etag = abap_false "generic handle in /IWBEP/IF_V4_DP_ADVANCED~READ_ENTITY; used for HTTP header If-None-Match : W/"20240314213856.6122440" to filter out unchanged entities (returns 304 instead of JSON)
                                       key_data = xsdbool( todo-process-key_data eq abap_true )
                                       select = xsdbool( todo-process-select eq abap_true ) ) ).
 
-*    io_response->set_not_modified( ) "what's this
-
   endmethod.
   method read_entity_list.
-
-    data itab type ref to data.
 
     field-symbols <itab> type standard table.
 
@@ -189,7 +219,13 @@ class zcl_ov4_orders_dpc implementation.
 
     i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
 
-    i_request->get_filter_osql_where_clause( importing ev_osql_where_clause = data(sql_cond) ).
+    i_request->get_filter_osql_where_clause( importing ev_osql_where_clause = data(filter_log_exp) ).
+
+    data(delta_token_log_exp) = new delta_token_log_exp_fy( )->from( i_request = i_request
+                                                                     i_todo = todo
+                                                                     i_osql_where_clause = filter_log_exp )->value( ).
+
+    data(log_exp) = filter_log_exp && delta_token_log_exp.
 
     if todo-return-count eq abap_true
        and not ( todo-return-busi_data eq abap_true ).
@@ -198,41 +234,20 @@ class zcl_ov4_orders_dpc implementation.
 
       select count(*)
         from (entityset_name)
-        where (sql_cond)
+        where (log_exp)
         into @count.
 
       i_response->set_count( count ).
 
     else.
 
-      i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
+      data(selected_properties) = new selected_properties_fy( )->from( i_request = i_request
+                                                                       i_todo = todo )->value( ).
 
-      data(selected_properties) = concat_lines_of( table = selected_properties_aux
-                                                   sep = `,` ).
+      data(sort_criteria) = new sort_criteria_fy( )->from( i_request = i_request
+                                                           i_todo = todo )->value( ).
 
-      "io_request->get_osql_orderby_clause( IMPORTING ev_osql_orderby_clause = data(orderby_string) ). only supported as of 751 or later
-      i_request->get_orderby( importing et_orderby_property = data(orderby_property) ).
-
-      if orderby_property is initial.
-
-        data(orderby) = `primary key`.
-
-      else.
-
-        orderby = reduce #( init aux type string
-                            for <orderby_property> in orderby_property index into index
-                            let direction = cond #( when <orderby_property>-descending eq abap_true
-                                                    then 'descending'
-                                                    else 'ascending' )
-                                separator = cond #( when index ne 1
-                                                    then `, ` ) in
-                            next aux = |{ aux }{ separator }{ <orderby_property>-name } { direction }| ).
-      endif.
-
-      data(cds_type) = cl_abap_tabledescr=>get( p_line_type = cast #( cl_abap_typedescr=>describe_by_name( entityset_name ) )
-                                                p_key_kind = cl_abap_tabledescr=>keydefkind_empty ).
-
-      create data itab type handle cds_type.
+      data(itab) = new itab_fy( )->from( entityset_name )->value( ).
 
       assign itab->* to <itab>.
 
@@ -256,7 +271,7 @@ class zcl_ov4_orders_dpc implementation.
 
         select count(*)
           from (entityset_name)
-          where (sql_cond)
+          where (log_exp)
           into @count_for_automatic_paging.
 
         top = i_auto_paging_size.
@@ -277,8 +292,8 @@ class zcl_ov4_orders_dpc implementation.
 
       select (selected_properties)
         from (entityset_name)
-        where (sql_cond)
-        order by (orderby)
+        where (log_exp)
+        order by (sort_criteria)
         into corresponding fields of table @<itab>
 *        offset @skip only supported as of 751 or later
 *        up to @top rows
@@ -310,61 +325,46 @@ class zcl_ov4_orders_dpc implementation.
 
     endif.
 
-    i_response->set_is_done( value #( delta_token = value #( )
+    get time stamp field data(current_ts). "change to make list etag the same as entity etag
+
+    i_response->set_delta_token( |{ substring( val = conv string( current_ts )
+                                               len = 8 ) }T{ substring( val = conv string( current_ts )
+                                                                        off = 8
+                                                                        len = 6 ) }Z| ).
+
+    i_response->set_changes_are_tracked( ).
+
+    if todo-process-key_data eq abap_true.
+
+      break-point.
+      message '' type 'X'.
+
+    endif.
+
+    i_response->set_is_done( value #( delta_token = xsdbool( todo-process-delta_token eq abap_true )
                                       filter = xsdbool( todo-process-filter eq abap_true )
-                                      key_data = value #( )
+                                      key_data = abap_false "I haven't found a query that marks this
                                       orderby =  xsdbool( todo-process-orderby eq abap_true )
-                                      search = value #( )
+                                      search = value #( ) "use semantic key to add two searches with like, one in uppercase and one in lowercase
                                       select = xsdbool( todo-process-select eq abap_true )
                                       skip = xsdbool( todo-process-skip eq abap_true )
                                       skip_token = xsdbool( todo-process-skip_token eq abap_true )
                                       top = xsdbool( todo-process-top eq abap_true ) ) ).
 
-*    io_response->set_delta_token( ).
+  endmethod.
+  method read_ref_target.
 
-*    io_response->set_changes_are_tracked( ). what's this
+    i_request->get_todos( importing es_todo_list = data(todo) ).
+
+    i_request->get_navigation_prop( importing ev_navigation_prop_name = data(navigation_prop_name)
+                                              ev_complex_property_path = data(complex_property_path) ).
+
+*    i_request->get_source_key_data( importing es_source_key_data = data(source_key_data) ).
+
+*    i_request->get_target_key_data( importing es_target_key_data = data(target_key_data) ).
 
   endmethod.
-  method read_ref_key_list_salesorder.
-
-    data: ls_salesorder_key_data type ZI_OV4_Orders,
-          lt_salesorderitem_key_data type standard table of ZI_OV4_OrderItems,
-          ls_todo_list type /iwbep/if_v4_requ_basic_ref_l=>ty_s_todo_list.
-
-    data: ls_done_list type /iwbep/if_v4_requ_basic_ref_l=>ty_s_todo_process_list,
-          lv_nav_property_name type /iwbep/if_v4_med_element=>ty_e_med_internal_name.
-
-    " Get the request options the application should/must handle
-    io_request->get_todos( importing es_todo_list = ls_todo_list ).
-
-    if ls_todo_list-process-source_key_data = abap_true.
-      io_request->get_source_key_data( importing es_source_key_data =  ls_salesorder_key_data ).
-      ls_done_list-source_key_data = abap_true.
-    endif.
-
-    io_request->get_navigation_prop( importing ev_navigation_prop_name = lv_nav_property_name ).
-
-    case lv_nav_property_name.
-
-      when ''.
-
-        select UpId,
-               Id
-          from ZI_OV4_OrderItems
-          into corresponding fields of table @lt_salesorderitem_key_data
-          where Id = @ls_salesorder_key_data-Id.
-
-        io_response->set_target_key_data( lt_salesorderitem_key_data ).
-
-      when others.
-
-        raise exception type /iwbep/cx_gateway
-          exporting
-            http_status_code = /iwbep/cx_gateway=>gcs_http_status_codes-sv_not_implemented.
-
-    endcase.
-
-    io_response->set_is_done( ls_done_list ).
+  method read_ref_target_list.
 
   endmethod.
 
