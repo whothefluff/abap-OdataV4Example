@@ -27,7 +27,7 @@ This README file outlines how the code defines models and CRUD based on CDS view
   - Allows retrieval of single property (without $value only)
   - Allows conditional retrieval of property with header If-None-Match and the entity eTag field (the cds field annotated with @Semantics.systemDate.lastChangedAt)
 - Creates GET of collections
-  - Defines query options $select, $expand, $skip, $top (virtually no limit), $skiptoken (default pagination 1000 entries), $count, $orderby, $deltatoken, $search (reads annotation @ObjectModel.semanticKey and creates thre LIKE SQL statements one case-sensitive, one lowercase and one uppercase), $expand
+  - Defines query options $select, $expand, $skip, $top (virtually no limit), $skiptoken (default pagination 1000 entries), $count, $orderby, $deltatoken, $search (reads annotation @ObjectModel.semanticKey and creates three LIKE SQL statements one case-sensitive, one lowercase and one uppercase), $expand
   - *Warning:* combinations of skiptoken + either skip or top are not allowed
   - *Warning:* pagination in version 7.50 of ABAP is not recommended so $top=2147483647 (4 byte int) can and should be used liberally (explicit $top supersedes implicit server-side pagination with $skiptoken)
 - Creates CREATE operations
