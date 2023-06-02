@@ -12,6 +12,8 @@ define view ZI_OV4_OrderStatuses
     on $projection.Id = _Texts.Id
   association [1..1] to ZI_OV4_OrderStatusLocalized as _LocalizedText
     on $projection.Id = _LocalizedText.Id
+  association [0..*] to ZI_OV4_Orders as _OrdersWithStatus
+    on $projection.Id = _OrdersWithStatus.Status
   //  association [0..1] to I_User as _CreationUser
   //    on $projection.CreatedBy = _CreationUser.UserID
   //  association [0..1] to I_User as _ModificationUser
@@ -29,7 +31,8 @@ define view ZI_OV4_OrderStatuses
     modified_by as ModifiedBy,
     @ObjectModel: { association: { type: [ #TO_COMPOSITION_CHILD] } }
     _Texts,
-    _LocalizedText
+    _LocalizedText,
+    _OrdersWithStatus
     //    _CreationUser,
     //    _ModificationUser
   }

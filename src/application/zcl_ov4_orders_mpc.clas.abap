@@ -85,6 +85,9 @@ class zcl_ov4_orders_mpc implementation.
 
     me->define_from_entity( `ZI_OV4_OrderStatusLocalized` ).
 
+    me->define_from_entity( i_name = `I_UnitOfMeasureText`
+                            i_model_associations = abap_false ).
+
   endmethod.
   method define_from_entity.
 
@@ -144,7 +147,7 @@ class zcl_ov4_orders_mpc implementation.
 
         if non_association_entry->iskeyelement( ).
 
-          primitive_property->set_is_key( ).
+          primitive_property->set_is_key( ). "if it's part of a condition of a parent entity, it should not be key (things of contained entities don't ask)
 
         else.
 
@@ -193,9 +196,9 @@ class zcl_ov4_orders_mpc implementation.
                                                          else /iwbep/if_v4_med_element=>gcs_med_nav_multiplicity-to_many_optional ) ).
 
             if entity_set is bound
-               and 1 eq 2. "is it for children, parents, neither, or a combination? | do last, after having all assocs working
+               and 1 eq 2. "it works for Orders/_Status | Orders/_Items doesn't work because items is contained and is not an entity set | OrderItems/_Header can't possibly work because there cannot be an entity set object
 
-              entity_set->add_navigation_prop_binding( iv_navigation_property_path = association->get_name( ) "?
+              entity_set->add_navigation_prop_binding( iv_navigation_property_path = association->get_name( )
                                                        iv_target_entity_set = exact #( association->get_target( )->get_name( ) ) ).
 
             endif.
@@ -215,10 +218,10 @@ class zcl_ov4_orders_mpc implementation.
                          or value #( obj_model_assoc_type[ 1 ] optional ) eq '#TO_COMPOSITION_ROOT' ).
 
               if not ( navigation->get_target_multiplicity( ) eq /iwbep/if_v4_med_element=>gcs_med_nav_multiplicity-to_many_optional ).
-
+                "try also with assoc that has more than one condition line (maybe gw_association->get_constraints( ) will come in handy)
                 data(on_expression) = cast cl_qlast_unmanaged_association( association )->get_on( ).
 
-                data(comparison_on_expression) = cast cl_qlast_comp_expression( on_expression ). "try also with assoc that has more than one condition line (maybe gw_association->get_constraints( ) will come in handy)
+                data(comparison_on_expression) = cast cl_qlast_comp_expression( on_expression ).
 
                 data(comparison_left_side) = cast cl_qlast_atomic_expression( cast cl_qlast_comp_expression( on_expression )->get_left( ) ).
 
@@ -226,6 +229,22 @@ class zcl_ov4_orders_mpc implementation.
 
                 navigation->add_referential_constraint( iv_source_property_path = comparison_left_side->get_identifier( )
                                                         iv_target_property_path = comparison_right_side->get_identifier( ) ).
+
+              endif.
+
+            endif.
+
+            if composition_up_annotations is initial
+               and obj_model_assoc_type is initial.
+
+              cl_dd_ddl_annotation_service=>get_drct_annos_4_entity_elmnts( exporting entityname = exact #( association->get_target( )->get_name_struct( )-name )
+                                                                            importing annos = data(target_assoc_element_annots) ).
+
+              if not ( line_exists( target_assoc_element_annots[ value = '#TO_COMPOSITION_PARENT' ] )
+                       or line_exists( target_assoc_element_annots[ value = '#TO_COMPOSITION_ROOT' ] ) ).
+
+                entity_set->add_navigation_prop_binding( iv_navigation_property_path = association->get_name( )
+                                                         iv_target_entity_set = exact #( association->get_target( )->get_name( ) ) ).
 
               endif.
 

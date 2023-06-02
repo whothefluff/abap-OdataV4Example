@@ -3,95 +3,79 @@ class zcl_ov4_orders_dpc definition
                          inheriting from /iwbep/cl_v4_abs_data_provider
                          create public.
 
-  public section.
+public section.
 
-    interfaces: /iwbep/if_v4_dp_basic.
+  "! <p class="shorttext synchronized" lang="EN"></p>
+  "!
+  "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+  "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+  "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+  methods read_entity
+            importing
+              !i_request type ref to /iwbep/if_v4_requ_basic_read
+              !i_response type ref to /iwbep/if_v4_resp_basic_read
+            raising
+              /iwbep/cx_gateway.
 
-    METHODS read_list_salesorder
-      IMPORTING
-        io_request        TYPE REF TO /iwbep/if_v4_requ_basic_list
-        io_response       TYPE REF TO /iwbep/if_v4_resp_basic_list
-        iv_orderby_string TYPE any
-        iv_select_string  TYPE any
-        iv_where_clause   TYPE any
-        iv_skip           TYPE any
-        iv_top            TYPE any
-        is_done_list      TYPE any.
+  "! <p class="shorttext synchronized" lang="EN"></p>
+  "! Paging in general is probably a bad idea until 7.51 and offset
+  "!
+  "! @parameter i_request | <p class="shorttext synchronized" lang="EN"></p>
+  "! @parameter i_response | <p class="shorttext synchronized" lang="EN"></p>
+  "! @parameter i_auto_paging_size | <p class="shorttext synchronized" lang="EN"></p>
+  "! @raising /iwbep/cx_gateway | <p class="shorttext synchronized" lang="EN"></p>
+  methods read_entity_list
+            importing
+              !i_request type ref to /iwbep/if_v4_requ_basic_list
+              !i_response type ref to /iwbep/if_v4_resp_basic_list
+              i_auto_paging_size type i default 1000
+            raising
+              /iwbep/cx_gateway.
 
-    METHODS read_entity_orders
-      IMPORTING
-        io_request  TYPE REF TO /iwbep/if_v4_requ_basic_read
-        io_response TYPE REF TO /iwbep/if_v4_resp_basic_read.
+  methods READ_REF_KEY_LIST_SALESORDER
+    importing
+      !IO_REQUEST type ref to /IWBEP/IF_V4_REQU_BASIC_REF_L
+      !IO_RESPONSE type ref to /IWBEP/IF_V4_RESP_BASIC_REF_L .
 
-    METHODS read_ref_key_list_salesorder
-      IMPORTING
-        io_request  TYPE REF TO /iwbep/if_v4_requ_basic_ref_l
-        io_response TYPE REF TO /iwbep/if_v4_resp_basic_ref_l.
+  methods /iwbep/if_v4_dp_basic~read_entity redefinition.
 
-    methods /iwbep/if_v4_dp_basic~read_entity redefinition.
+  methods /iwbep/if_v4_dp_basic~read_entity_list redefinition.
 
-    methods /iwbep/if_v4_dp_basic~read_entity_list redefinition.
-
-    methods /iwbep/if_v4_dp_basic~read_ref_target_key_data_list redefinition.
+  methods /iwbep/if_v4_dp_basic~read_ref_target_key_data_list redefinition.
 
   protected section.
 
 endclass.
-
-
-
 class zcl_ov4_orders_dpc implementation.
 
   method /iwbep/if_v4_dp_basic~read_entity.
-"GET ….<service root>/orders(‘50000000’).
+
     io_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
 
     case entityset_name.
 
-      when ''.
+      when 'entityThatRequiresCustomSelect'.
 
-        read_entity_orders( io_request = io_request
-                            io_response = io_response ).
+      when others.
+
+        read_entity( i_request = io_request
+                     i_response = io_response ).
 
     endcase.
 
   endmethod.
   method /iwbep/if_v4_dp_basic~read_entity_list.
-"GET ….<service root>/orders
-    data(done_list) = value /iwbep/if_v4_requ_basic_list=>ty_s_todo_process_list( ).
-
-    io_request->get_todos( importing es_todo_list = data(todo_list) ).
-
-    if todo_list-process-skip eq abap_true.
-
-      done_list-skip = abap_true.
-
-      io_request->get_skip( importing ev_skip = data(skip) ).
-
-    endif.
-
-    if todo_list-process-top = abap_true.
-
-      done_list-top = abap_true.
-
-      io_request->get_top( importing ev_top = data(top) ).
-
-    endif.
 
     io_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
 
     case entityset_name.
 
-      when 'ZI_OV4_ORDERS'.
+      when 'entityThatRequiresCustomSelect'.
 
-        read_list_salesorder( io_request = io_request
-                              io_response = io_response
-                              iv_orderby_string = ''
-                              iv_select_string = ''
-                              iv_where_clause = ''
-                              iv_skip = skip
-                              iv_top = top
-                              is_done_list = done_list ).
+      when others.
+
+        me->read_entity_list( i_request = io_request
+                              i_response = io_response ).
 
     endcase.
 
@@ -123,62 +107,222 @@ class zcl_ov4_orders_dpc implementation.
 
 
   endmethod.
-  method read_list_salesorder.
+  method read_entity.
 
-    data orders type standard table of ZI_OV4_Orders with empty key.
+    data structure type ref to data.
 
-      select (iv_select_string)
-        from ZI_OV4_Orders
-        where (iv_where_clause)
-        order by (iv_orderby_string)
-        into table @orders
-*        offset @iv_skip
-        up to @iv_top rows.
+    i_request->get_todos( importing es_todo_list = data(todo) ).
 
-      io_response->set_busi_data( orders ).
+    if todo-process-key_data eq abap_true.
 
-      io_response->set_is_done( value #( key_data = abap_true ) ).
+      i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
 
-  endmethod.
-  method read_entity_orders.
+      data(cds_type) = cast cl_abap_structdescr( cl_abap_typedescr=>describe_by_name( entityset_name ) ).
 
-    data: ls_salesorder type ZI_OV4_Orders,
-          ls_key_salesorder type ZI_OV4_Orders,
-          lv_salesorder_key_edm type string,
-          lv_helper_int type i.
+      create data structure type handle cds_type.
 
-    data: ls_todo_list type /iwbep/if_v4_requ_basic_read=>ty_s_todo_list,
-          ls_done_list type /iwbep/if_v4_requ_basic_read=>ty_s_todo_process_list.
+      assign structure->* to field-symbol(<structure>).
 
-    io_request->get_todos( importing es_todo_list = ls_todo_list ).
+      cast /iwbep/cl_v4_request_info_pro( i_request )->get_base_request_info( )->get_source_key_data_tab( importing et_source_key_tab = data(key_data_tab) ).
 
-    " read the key data
-    io_request->get_key_data( importing es_key_data = ls_key_salesorder ).
+      data(sql_cond) = reduce #( init dyn_cond type string
+                                 for <entry> in key_data_tab index into index
+                                 let logical_expression = cond #( when index ne 1
+                                                                  then ` and ` ) in
+                                 next dyn_cond = |{ dyn_cond }{ logical_expression }{ <entry>-name } eq '{ <entry>-value }'| ).
 
-    ls_done_list-key_data = abap_true.
+      i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
 
-    select single *
-      from ZI_OV4_Orders
-      into corresponding fields of @ls_salesorder
-      where Id = @ls_key_salesorder-Id.
+      data(selected_properties) = concat_lines_of( table = selected_properties_aux
+                                                   sep = `,` ).
 
-    if ls_salesorder is not initial.
-      io_response->set_busi_data( is_busi_data = ls_salesorder ).
-    else.
-      "Move data first to an integer to remove leading zeros from the response
-      lv_salesorder_key_edm = lv_helper_int = ls_key_salesorder-Id.
+      select single (selected_properties)
+        from (entityset_name)
+        where (sql_cond)
+        into corresponding fields of @<structure>.
 
-      raise exception type /iwbep/cx_gateway
-        exporting
-          textid              = value #( ) "/iwbep/cx_gateway=>entity_not_found
-          http_status_code    = /iwbep/cx_gateway=>gcs_http_status_codes-not_found.
-*          edm_entity_set_name = zcl_ov4_orders_mpc=>entity_set_names-edm-orders
-*          entity_key          = lv_salesorder_key_edm.
+      if <structure> is not initial.
+
+        if todo-return-busi_data eq abap_true.
+
+          i_response->set_busi_data( <structure> ).
+
+        endif.
+
+      else.
+
+        i_request->get_entity_type( importing ev_entity_type_name = data(entity_type_name) ).
+
+        raise exception type /iwbep/cx_v4_runtime exporting textid = /iwbep/cx_v4_runtime=>entity_not_found
+                                                            entity_type_name = conv #( entity_type_name )
+                                                            navigation_key = selected_properties
+                                                            http_status_code = /iwbep/cx_gateway=>gcs_http_status_codes-not_found.
+
+      endif.
 
     endif.
 
-    " Report list of request options handled by application
-    io_response->set_is_done( ls_done_list ).
+    i_response->set_is_done( value #( if_none_match_etag = value #( ) "how do I get todo-process-if_none_match_etag to be true and what does it mean
+                                      key_data = xsdbool( todo-process-key_data eq abap_true )
+                                      select = xsdbool( todo-process-select eq abap_true ) ) ).
+
+*    io_response->set_not_modified( ) "what's this
+
+  endmethod.
+  method read_entity_list.
+
+    data itab type ref to data.
+
+    field-symbols <itab> type standard table.
+
+    i_request->get_todos( importing es_todo_list = data(todo) ).
+
+    if todo-process-skip_token eq abap_true
+       and ( todo-process-skip eq abap_true
+             or todo-process-top eq abap_true ).
+
+      raise exception type /iwbep/cx_v4_not_implemented exporting textid = /iwbep/cx_v4_not_implemented=>not_supported_query_options
+                                                                  exception_category = /iwbep/cx_v4_not_implemented=>gcs_excep_categories-provider
+                                                                  http_status_code = /iwbep/cx_v4_not_implemented=>gcs_http_status_codes-sv_not_implemented.
+
+    endif.
+
+    i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
+
+    i_request->get_filter_osql_where_clause( importing ev_osql_where_clause = data(sql_cond) ).
+
+    if todo-return-count eq abap_true
+       and not ( todo-return-busi_data eq abap_true ).
+
+      data(count) = 0.
+
+      select count(*)
+        from (entityset_name)
+        where (sql_cond)
+        into @count.
+
+      i_response->set_count( count ).
+
+    else.
+
+      i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
+
+      data(selected_properties) = concat_lines_of( table = selected_properties_aux
+                                                   sep = `,` ).
+
+      "io_request->get_osql_orderby_clause( IMPORTING ev_osql_orderby_clause = data(orderby_string) ). only supported as of 751 or later
+      i_request->get_orderby( importing et_orderby_property = data(orderby_property) ).
+
+      if orderby_property is initial.
+
+        data(orderby) = `primary key`.
+
+      else.
+
+        orderby = reduce #( init aux type string
+                            for <orderby_property> in orderby_property index into index
+                            let direction = cond #( when <orderby_property>-descending eq abap_true
+                                                    then 'descending'
+                                                    else 'ascending' )
+                                separator = cond #( when index ne 1
+                                                    then `, ` ) in
+                            next aux = |{ aux }{ separator }{ <orderby_property>-name } { direction }| ).
+      endif.
+
+      data(cds_type) = cl_abap_tabledescr=>get( p_line_type = cast #( cl_abap_typedescr=>describe_by_name( entityset_name ) )
+                                                p_key_kind = cl_abap_tabledescr=>keydefkind_empty ).
+
+      create data itab type handle cds_type.
+
+      assign itab->* to <itab>.
+
+      if todo-process-skip eq abap_true.
+
+        i_request->get_skip( importing ev_skip = data(skip) ).
+
+      endif.
+
+      if todo-process-top eq abap_true.
+
+        i_request->get_top( importing ev_top = data(top) ).
+
+      endif.
+
+      if i_auto_paging_size is not initial
+         and skip is initial
+         and top is initial.
+
+        data(count_for_automatic_paging) = 0.
+
+        select count(*)
+          from (entityset_name)
+          where (sql_cond)
+          into @count_for_automatic_paging.
+
+        top = i_auto_paging_size.
+
+        if todo-process-skip_token eq abap_true.
+
+          i_request->get_skip_token( importing ev_skip_token = data(skip_token) ).
+
+          skip = skip_token.
+
+        endif.
+
+      endif.
+
+      data(max_index) = cond i( when top is not initial "necessary only in 7.50
+                                then skip + top
+                                else 0 ).
+
+      select (selected_properties)
+        from (entityset_name)
+        where (sql_cond)
+        order by (orderby)
+        into corresponding fields of table @<itab>
+*        offset @skip only supported as of 751 or later
+*        up to @top rows
+        up to @max_index rows.
+
+      if skip is not initial.
+
+        delete <itab> to skip.
+
+      endif.
+
+      if todo-return-busi_data eq abap_true.
+
+        i_response->set_busi_data( <itab> ).
+
+        if todo-return-count eq abap_true.
+
+          i_response->set_count( lines( <itab> ) ). "i_response->set_count( sy-dbcnt ). only for 7.51 with offset
+
+        endif.
+
+      endif.
+
+      if count_for_automatic_paging gt skip_token + i_auto_paging_size.
+
+        i_response->set_skip_token( |{ skip_token + i_auto_paging_size number = raw }| ).
+
+      endif.
+
+    endif.
+
+    i_response->set_is_done( value #( delta_token = value #( )
+                                      filter = xsdbool( todo-process-filter eq abap_true )
+                                      key_data = value #( )
+                                      orderby =  xsdbool( todo-process-orderby eq abap_true )
+                                      search = value #( )
+                                      select = xsdbool( todo-process-select eq abap_true )
+                                      skip = xsdbool( todo-process-skip eq abap_true )
+                                      skip_token = xsdbool( todo-process-skip_token eq abap_true )
+                                      top = xsdbool( todo-process-top eq abap_true ) ) ).
+
+*    io_response->set_delta_token( ).
+
+*    io_response->set_changes_are_tracked( ). what's this
 
   endmethod.
   method read_ref_key_list_salesorder.
