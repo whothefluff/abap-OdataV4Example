@@ -103,9 +103,6 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method /iwbep/if_v4_dp_basic~read_ref_target_key_data.
 
-    super->/iwbep/if_v4_dp_basic~read_ref_target_key_data( io_request = io_request
-                                                           io_response = io_response ).
-
     io_request->get_source_entity_type( importing ev_source_entity_type_name = data(source_entityset_name) ).
 
     case source_entityset_name.
@@ -122,8 +119,8 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method /iwbep/if_v4_dp_basic~read_ref_target_key_data_list.
 
-    super->/iwbep/if_v4_dp_basic~read_ref_target_key_data_list( io_request = io_request
-                                                                io_response = io_response ).
+*    super->/iwbep/if_v4_dp_basic~read_ref_target_key_data_list( io_request = io_request
+*                                                                io_response = io_response ).
 
     io_request->get_source_entity_type( importing ev_source_entity_type_name = data(source_entityset_name) ).
 
@@ -141,18 +138,24 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method read_entity.
 
+    types key_fields type sorted table of /iwbep/v4_med_internal_name with unique key table_line.
+
     data structure type ref to data.
 
     i_request->get_todos( importing es_todo_list = data(todo) ).
 
     if todo-process-key_data eq abap_true.
 
-      i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
-
       i_request->get_selected_properties( importing et_selected_property = data(selected_properties_aux) ).
 
       data(selected_properties) = concat_lines_of( table = selected_properties_aux
                                                    sep = `,` ).
+
+      i_request->get_entity_set( importing ev_entity_set_name = data(entityset_name) ).
+
+      cast /iwbep/cl_v4_request_info_pro( i_request )->get_source_entity_type( )->get_key_property_names( importing et_internal_name = data(key_property_names) ).
+
+      data(key_fields) = conv key_fields( key_property_names ).
 
       data(cds_type) = cast cl_abap_structdescr( cl_abap_typedescr=>describe_by_name( entityset_name ) ).
 
@@ -160,15 +163,20 @@ class zcl_ov4_orders_dpc implementation.
 
       assign structure->* to field-symbol(<structure>).
 
-      cast /iwbep/cl_v4_request_info_pro( i_request )->get_base_request_info( )->get_source_key_data_tab( importing et_source_key_tab = data(key_data_tab) ).
+      i_request->get_key_data( importing es_key_data = <structure> ).
 
-      data(filter_log_exp) = reduce #( init aux type string
-                                       for <entry> in key_data_tab index into index
-                                       let logical_expression = cond #( when index ne 1
-                                                                        then ` and ` ) in
-                                       next aux = |{ aux }{ logical_expression }{ <entry>-name } eq '{ <entry>-value }'| ).
+      data(log_exp) = ``.
 
-      data(log_exp) = filter_log_exp.
+      loop at filter #( cds_type->components in key_fields where name eq table_line ) reference into data(key_component).
+
+        assign component key_component->*-name of structure <structure> to field-symbol(<key_value>).
+
+        log_exp = |{ log_exp }{ cond #( let exp = key_component->*-name && ` eq '` && <key_value> && `'` in
+                                        when log_exp is initial
+                                        then exp
+                                        else ` and ` && exp ) }|.
+
+      endloop.
 
       select single (selected_properties)
         from (entityset_name)
@@ -354,17 +362,84 @@ class zcl_ov4_orders_dpc implementation.
   endmethod.
   method read_ref_target.
 
+    data structure type ref to data.
+
     i_request->get_todos( importing es_todo_list = data(todo) ).
 
-    i_request->get_navigation_prop( importing ev_navigation_prop_name = data(navigation_prop_name)
-                                              ev_complex_property_path = data(complex_property_path) ).
+    if todo-process-source_key_data eq abap_true.
 
-*    i_request->get_source_key_data( importing es_source_key_data = data(source_key_data) ).
+      i_request->get_navigation_prop( importing ev_navigation_prop_name = data(current_nav_node_name) ).
 
-*    i_request->get_target_key_data( importing es_target_key_data = data(target_key_data) ).
+      data(enhanced_request) = cast /iwbep/cl_v4_request_info_pro( i_request ).
+
+      data(target_query_info) = new target_query_info_fy( )->from( i_enhanced_request = enhanced_request
+                                                                   i_current_nav_node_name = current_nav_node_name ).
+
+      data(target_key_fields) = target_query_info->key_path_expressions( ).
+
+      enhanced_request->get_navigation_path( )->get_entity_set_name( importing ev_entity_set_name = data(entity_set_name) ).
+
+      enhanced_request->get_base_request_info( )->get_source_key_data_tab( importing et_source_key_tab = data(key_data_tab) ).
+
+      data(log_exp) = reduce #( init aux type string
+                                for <entry> in key_data_tab index into index
+                                let logical_expression = cond #( when index ne 1
+                                                                 then ` and ` ) in
+                                next aux = |{ aux }{ logical_expression }{ <entry>-name } eq '{ <entry>-value }'| ).
+
+      data(cds_type) = cast cl_abap_structdescr( cl_abap_typedescr=>describe_by_name( target_query_info->entity_name( ) ) ).
+
+      create data structure type handle cds_type.
+
+      assign structure->* to field-symbol(<structure>).
+
+      select single (target_key_fields)
+        from (entity_set_name)
+        where (log_exp)
+        into corresponding fields of @<structure>.
+
+      i_response->set_target_key_data( <structure> ).
+
+    endif.
+
+    if todo-process-target_key_data eq abap_true.
+
+      break-point.
+      message '' type 'X'.
+
+    endif.
+
+    i_response->set_is_done( value #( target_key_data = abap_false "I haven't found a query that marks this
+                                      source_key_data = xsdbool( todo-process-source_key_data eq abap_true ) ) ).
 
   endmethod.
   method read_ref_target_list.
+
+    data structure type ref to data.
+
+    i_request->get_todos( importing es_todo_list = data(todo) ).
+
+    if todo-process-source_key_data eq abap_true.
+
+      i_request->get_navigation_prop( importing ev_navigation_prop_name = data(current_nav_node_name) ). "_Items,
+
+      i_request->get_source_entity_type( importing ev_source_entity_type_name = data(ev_source_entity_type_name) ). "ZI_OV4_ORDERS_TY
+
+      data(enhanced_request) = cast /iwbep/cl_v4_request_info_pro( i_request ).
+
+      enhanced_request->get_navigation_path( )->get_entity_set_name( importing ev_entity_set_name = data(entity_set_name) ). "ZI_OV4_ORDERS
+
+      data(cds_type) = cast cl_abap_structdescr( cl_abap_typedescr=>describe_by_name( entity_set_name ) ).
+
+      create data structure type handle cds_type.
+
+      assign structure->* to field-symbol(<structure>).
+
+      i_request->get_source_key_data( importing es_source_key_data = <structure> ).
+
+*      i_request->get_target_key_data( importing es_target_key_data = es_target_key_data  ).
+
+    endif.
 
   endmethod.
 
